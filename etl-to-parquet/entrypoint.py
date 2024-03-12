@@ -9,7 +9,7 @@ if __name__ == "__main__":
     # Displays extreme weather stats (highest temperature, wind, precipitation) for the given, or latest, year.
     # """
 
-    file_s3_path = sys.argv[1]
+    file_s3_uri = sys.argv[1]
     file_type = sys.argv[2]
 
     etl_to_parquet = EtlToParquet(file_s3_uri, file_type)
