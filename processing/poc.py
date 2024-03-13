@@ -9,6 +9,12 @@ def extract_files(spark: SparkSession, json_dir: str, output_dir: str):
     df = spark.read.json(json_dir)
     df = df.withColumn('file_name', input_file_name())
 
+    df_by_outcome = explode_df(df)
+
+    df_by_outcome.write.parquet(output_dir, mode="overwrite")
+
+
+def explode_df(df):
     # explode books
     df_by_book = df.select(
         df.away_team,
@@ -63,7 +69,7 @@ def extract_files(spark: SparkSession, json_dir: str, output_dir: str):
         df_by_outcome.outcome.price.alias("price")
     )
 
-    df_by_outcome.write.parquet(output_dir, mode="overwrite")
+    return df_by_outcome
 
 
 if __name__ == "__main__":
