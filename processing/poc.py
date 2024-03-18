@@ -1,12 +1,49 @@
-import os
+import argparse
+import datetime
+from datetime import timedelta
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import explode, input_file_name
 
 
-def extract_files(spark: SparkSession, json_dir: str, output_dir: str):
+def format_s3_uri(uri: str) -> str:
+    # change s3 to s3a
+    if 's3a' not in uri:
+        uri = uri.replace("s3", "s3a")
+
+    # ensure trailing slash
+    if uri[-1] != "/":
+        uri = uri + "/"
+
+    return uri
+
+
+def build_s3_uri_list(
+        start_date_: str,
+        end_date_: str,
+        s3_prefix: str
+) -> list:
+
+    # expect dates to be in yyyymmdd
+    start_dt = datetime.date(
+        int(start_date_[0:4]),
+        int(start_date_[4:6]),
+        int(start_date_[6:8]),
+    )
+    end_dt = datetime.date(
+        int(end_date_[0:4]),
+        int(end_date_[4:6]),
+        int(end_date_[6:8]),
+    )
+
+    date_list = [start_dt + timedelta(days=x) for x in range((end_dt - start_dt).days)]
+
+    return [f"{s3_prefix}{str(x.year)}/{str(x.month).zfill(2)}/{str(x.day).zfill(2)}/" for x in date_list]
+
+
+def extract_files(spark: SparkSession, json_dirs: list, output_dir: str):
     # Read JSON directory into DataFrame
-    df = spark.read.json(json_dir)
+    df = spark.read.json(json_dirs)
     df = df.withColumn('file_name', input_file_name())
 
     df_by_outcome = explode_df(df)
@@ -78,18 +115,34 @@ if __name__ == "__main__":
         .appName("Read JSON from S3") \
         .getOrCreate()
 
-    # QUESTION: can I omit access keys when running on EMR? if so, then use environment logic to bypass in emr
-    # Define S3 credentials and JSON file path
-    access_key = os.environ["ACCESS_KEY"]
-    secret_key = os.environ["SECRET_ACCESS_KEY"]
-    json_uri = os.environ["JSON_DIRECTORY"]
+    parser = argparse.ArgumentParser()
 
-    output_uri = os.environ["OUTPUT_DIRECTORY"]
+    parser.add_argument("--input-prefix", help="S3 URI prefix for input files - excluding date.")
+    parser.add_argument("--output-prefix", help="Output S3 URI prefix for process to write to")
+    parser.add_argument("--environment", help="p for prod, d for dev, l for local")
+    parser.add_argument("--start-date", help="Analysis start date yyyymmdd")
+    parser.add_argument("--end-date", help="Analysis end date yyyymmdd")
+    parser.add_argument("--aws-access-key", required=False)
+    parser.add_argument("--aws-secret-access-key", required=False)
 
-    # Configure AWS credentials
-    spark_session.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.access.key", access_key)
-    spark_session.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.secret.key", secret_key)
+    args = parser.parse_args()
+    env = args.environment
+    output_prefix = args.output_prefix
+    start_date = args.start_date
+    end_date = args.end_date
+    input_prefix = args.input_prefix
 
-    extract_files(spark_session, json_uri, output_uri)
+    if env == "l":
+        access_key = args.aws_access_key
+        secret_key = args.aws_secret_access_key
+        spark_session.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.access.key", access_key)
+        spark_session.sparkContext._jsc.hadoopConfiguration().set("fs.s3a.secret.key", secret_key)
+
+    input_prefix = format_s3_uri(input_prefix)
+    output_prefix = format_s3_uri(output_prefix)
+
+    json_uris = build_s3_uri_list(start_date, end_date, input_prefix)
+
+    extract_files(spark_session, json_uris, output_prefix)
 
     spark_session.stop()
