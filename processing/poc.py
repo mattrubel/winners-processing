@@ -112,7 +112,7 @@ def explode_df(df):
 if __name__ == "__main__":
     # Create a SparkSession
     spark_session = SparkSession.builder \
-        .appName("ExtractToParquet") \
+        .appName("Read JSON from S3") \
         .getOrCreate()
 
     parser = argparse.ArgumentParser()
