@@ -29,3 +29,6 @@ jobs:
 
       - name: Run pre-commit
         run: pre-commit run --all-files --show-diff-on-failure --color always
+
+      - name: Run Terraform format check
+        run: terraform fmt -check --recursive
