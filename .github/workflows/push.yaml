@@ -18,9 +18,9 @@ jobs:
 #        with:
 #          python-version: 3.x
 #
-#      - name: Install dependencies
-#        run: |
-#          pip install -r requirements.txt  # Assuming you have a requirements file
+      - name: Install dependencies
+        run: |
+          pip install pylint
 
       - name: Lint Python code
         run: |
