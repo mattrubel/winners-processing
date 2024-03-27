@@ -34,4 +34,4 @@ jobs:
         run: terraform fmt -check --recursive
 
       - name: Run pytest
-        run:  pytest processing/test/extract_to_parquet/extract_to_parquet_tests.py
+        run:  pytest processing/test/extract_to_parquet/test_extract_to_parquet.py

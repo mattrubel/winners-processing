@@ -86,7 +86,7 @@ def explode_df(df):
         df_by_market.sport_key,
         df_by_market.book_key,
         df_by_market.last_updated,
-        df_by_market.market.key.alias("outcome_key"),
+        df_by_market.market.key.alias("market_key"),
         explode(df_by_market.market.outcomes).alias("outcome"),
     )
 
@@ -100,7 +100,7 @@ def explode_df(df):
         df_by_outcome.sport_key,
         df_by_outcome.book_key,
         df_by_outcome.last_updated,
-        df_by_outcome.outcome_key,
+        df_by_outcome.market_key,
         df_by_outcome.outcome['name'].alias("name"),
         df_by_outcome.outcome.point.alias("point"),
         df_by_outcome.outcome.price.alias("price")
