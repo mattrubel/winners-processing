@@ -3,3 +3,5 @@ venv
 .terraform
 .terraform.lock.hcl
 .DS_Store
+.pytest_cache
+__pycache__
